@@ -4,6 +4,7 @@ import (
     "fmt"
     "net/http"
     "github.com/stripe/stripe-go"
+    "github.com/stripe/stripe-go/charge"
 )
 
 func AcceptPayment(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +20,11 @@ func AcceptPayment(w http.ResponseWriter, r *http.Request) {
 
   //  Token:    r.PostFormValue("stripeToken")
 
-   _, err := &stripe.Charges.Create(&params)
+     fmt.Fprintf(w, "Start charge!")
+
+   _, err := charge.New(params)
+
+   fmt.Fprintf(w, "Got here!")
 
    if err == nil {
    		fmt.Fprintf(w, "Successful test payment!")
