@@ -4,36 +4,50 @@ import (
     "fmt"
     "net/http"
     "github.com/stripe/stripe-go"
+    "github.com/stripe/stripe-go/customer"
     "github.com/stripe/stripe-go/charge"
+    "encoding/json"
 )
+
+type payment struct {
+    Amount uint64
+    Description string
+    EmailAddress string
+    StripeToken string
+}
 
 func AcceptPayment(w http.ResponseWriter, r *http.Request) {
 
+   w.Header().Set("Access-Control-Allow-Origin", "*")
+
+    decoder := json.NewDecoder(r.Body)
+    var payment_details payment
+    err := decoder.Decode(&payment_details)
+    if err != nil {
+        panic(err)
+    }
+    defer r.Body.Close()
+
    stripe.Key = "sk_test_L8nrpi6m2KzwGolKsCN86pqJ"
 
+   customerParams := &stripe.CustomerParams{
+     Email: payment_details.EmailAddress,
+   }
+   customerParams.SetSource(payment_details.StripeToken)
+   customer, err := customer.New(customerParams)
+
    params := &stripe.ChargeParams{
-     Amount: 1000,
+     Amount: payment_details.Amount,
      Currency: "gbp",
-     Desc: "Example charge",
-     Token: "ggdffdgfgffff",
+     Desc: payment_details.Description,
+     Token: payment_details.StripeToken,
+     Customer: customer.ID,
    }
 
-  //  Token:    r.PostFormValue("stripeToken")
-
-     fmt.Fprintf(w, "Start charge!")
-
-   _, err := charge.New(params)
-
-   fmt.Fprintf(w, "Got here!")
-
-   if err == nil {
-   		fmt.Fprintf(w, "Successful test payment!")
-   	} else {
-   		fmt.Fprintf(w, "Unsuccessful test payment: "+err.Error())
-   	}
+   _, err = charge.New(params)
 }
 
 func main() {
     http.HandleFunc("/", AcceptPayment)
-    http.ListenAndServe(":8080", nil)
+    http.ListenAndServe(":8081", nil)
 }
